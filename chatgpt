@@ -1,0 +1,36 @@
+import cv2
+import numpy as np
+import pytesseract
+
+# Einlesen des Bildes
+image = cv2.imread('scoresheet.jpg')
+
+# Konvertieren in Graustufen
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+# Erkennung von horizontalen und vertikalen Linien
+horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (50, 1))
+horizontal_lines = cv2.erode(gray, horizontal_kernel, iterations=3)
+horizontal_lines = cv2.dilate(horizontal_lines, horizontal_kernel, iterations=3)
+
+vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 50))
+vertical_lines = cv2.erode(gray, vertical_kernel, iterations=3)
+vertical_lines = cv2.dilate(vertical_lines, vertical_kernel, iterations=3)
+
+# Finden der Konturen und der Ränder des Scoresheets
+lines = cv2.addWeighted(horizontal_lines, 0.5, vertical_lines, 0.5, 0.0)
+_, contours, _ = cv2.findContours(lines, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+# Zuschneiden des Bildes
+x, y, w, h = cv2.boundingRect(contours[0])
+cropped_image = image[y:y+h, x:x+w]
+
+# Texterkennung
+text = pytesseract.image_to_string(cropped_image)
+
+# Textbereinigung
+text = text.replace('\n', ' ')
+text = ' '.join(text.split())
+
+# Ausgabe des Ergebnisses
+print(text)
